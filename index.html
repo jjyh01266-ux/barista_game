@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>바리스타 응대 연습</title>
+  <style>
+    :root {
+      --ink: #211913;
+      --muted: #6d6259;
+      --line: #8a6a4a;
+      --paper: #fff8ea;
+      --paper-strong: #fff1d2;
+      --green: #5f9f61;
+      --red: #d85d57;
+      --blue: #557f9f;
+      --gold: #e3a51f;
+      --app: #eef2f3;
+      --shadow: 0 5px 0 rgba(82, 58, 36, 0.22), 0 14px 24px rgba(32, 26, 21, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #9bd8fb;
+    }
+
+    button { font: inherit; color: inherit; }
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    .start-screen {
+      display: none;
+      place-items: center;
+      overflow: hidden;
+      background: #9bd8fb;
+    }
+
+    .start-screen.active { display: grid; }
+
+    .start-art {
+      position: relative;
+      width: min(100vw, 150vh);
+      aspect-ratio: 3 / 2;
+      overflow: hidden;
+    }
+
+    .start-art img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .start-hotspot,
+    .field-button {
+      position: absolute;
+      left: 67.2%;
+      width: 27.8%;
+      height: 12.8%;
+      border: 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.01);
+      color: transparent;
+      cursor: pointer;
+    }
+
+    .start-hotspot.beginner { top: 34.1%; }
+    .start-hotspot.expert { top: 52.1%; }
+    .field-button { top: 70.2%; }
+    .start-hotspot:focus-visible,
+    .field-button:focus-visible { outline: 5px solid #ffe08a; outline-offset: 4px; }
+
+    .game-screen {
+      display: none;
+      place-items: center;
+      min-height: 100vh;
+      padding: 18px;
+      background:
+        linear-gradient(rgba(245, 250, 250, 0.92), rgba(236, 240, 241, 0.95)),
+        repeating-linear-gradient(90deg, #dce5e8 0 38px, #edf2f3 38px 76px);
+    }
+
+    .game-screen.active {
+      display: grid;
+    }
+
+    .app-shell {
+      position: relative;
+      display: grid;
+      grid-template-rows: 34px 62px minmax(0, 1fr);
+      gap: 8px;
+      width: min(calc(100vw - 36px), calc((100vh - 36px) * 16 / 9), 1280px);
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
+      padding: 12px;
+      border: 3px solid #9aa8ad;
+      border-radius: 8px;
+      background: var(--app);
+      box-shadow: 0 14px 34px rgba(30, 40, 45, 0.18);
+    }
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+      color: #2f3a3f;
+      font-weight: 900;
+    }
+
+    .mode-pill {
+      padding: 6px 12px;
+      border: 2px solid #a7b4b9;
+      border-radius: 999px;
+      background: #f8fbfb;
+      color: #48565c;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      gap: 14px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .scene-column,
+    .interaction-column {
+      min-width: 0;
+    }
+
+    .scene-column {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto auto;
+      gap: 9px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .scene-card,
+    .side-card,
+    .dialog-card,
+    .choice,
+    .feedback {
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .scene-card {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      min-height: 0;
+    }
+
+    .scene-card img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .face-bubble {
+      position: absolute;
+      z-index: 2;
+      display: none;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border: 4px solid #4b311e;
+      border-radius: 18px;
+      background: #f0c49e;
+      box-shadow: 0 5px 0 rgba(75, 52, 34, 0.18);
+      font-size: 34px;
+      font-weight: 900;
+    }
+
+    .face-bubble.customer {
+      right: 8%;
+      top: 9%;
+    }
+
+    .face-bubble.barista {
+      left: 11%;
+      top: 9%;
+    }
+
+    .face-bubble.show { display: grid; }
+    .face-bubble.good { background: #ffd5a8; }
+    .face-bubble.bad { background: #f2a19b; animation: shake 0.18s linear 3; }
+    .face-bubble.awkward { background: #efd3b8; }
+
+    .scene-note {
+      margin: 10px 0 0;
+      padding: 12px 14px;
+      border: 2px solid #c8d3d6;
+      border-radius: 8px;
+      background: #f9fbfb;
+      color: var(--muted);
+      font-size: clamp(12px, 1.25vw, 16px);
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .interaction-column {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 9px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .step {
+      min-height: 0;
+      padding: 5px 4px;
+      border: 2px solid #c9b18e;
+      border-radius: 8px;
+      background: #fff6e2;
+      color: #675748;
+      text-align: center;
+      font-size: clamp(10px, 1vw, 12px);
+      font-weight: 900;
+    }
+
+    .step-number {
+      display: grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      margin: 0 auto 3px;
+      border-radius: 50%;
+      background: #7b6b5b;
+      color: white;
+      font-size: 14px;
+    }
+
+    .step.current {
+      border-color: #e0a228;
+      background: #fff0c6;
+      color: #b7442d;
+    }
+
+    .step.current .step-number {
+      background: var(--gold);
+    }
+
+    .step.done {
+      border-color: #78a96e;
+      background: #ecf7e8;
+    }
+
+    .step.done .step-number {
+      background: var(--green);
+    }
+
+    .stage-title {
+      display: grid;
+      place-items: center;
+      min-height: 86px;
+      padding: 12px;
+      font-size: clamp(30px, 3.8vw, 48px);
+      line-height: 1.08;
+      font-weight: 1000;
+      text-align: center;
+    }
+
+    .ticket {
+      padding: 12px 16px;
+      min-height: 134px;
+    }
+
+    .ticket h2 {
+      margin: 0 0 10px;
+      font-size: clamp(18px, 2vw, 23px);
+      text-align: center;
+    }
+
+    .ticket-row {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(123, 90, 59, 0.22);
+      font-size: clamp(12px, 1.25vw, 15px);
+      font-weight: 900;
+    }
+
+    .dialog-card {
+      padding: 14px 16px;
+      min-height: 108px;
+      background: #eefbf7;
+      border-color: #6fae9d;
+    }
+
+    .speaker {
+      display: inline-block;
+      min-width: 82px;
+      margin-bottom: 8px;
+      padding: 6px 12px;
+      border: 2px solid var(--line);
+      border-radius: 7px;
+      background: #fffaf0;
+      text-align: center;
+      font-size: clamp(15px, 1.5vw, 18px);
+      font-weight: 1000;
+    }
+
+    .speech {
+      font-size: clamp(25px, 3.1vw, 38px);
+      line-height: 1.25;
+      font-weight: 1000;
+      word-break: keep-all;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+      align-content: start;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .choice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 0;
+      padding: 12px 16px;
+      cursor: pointer;
+      text-align: left;
+      font-size: clamp(20px, 2.55vw, 33px);
+      line-height: 1.22;
+      font-weight: 1000;
+      word-break: keep-all;
+      background: #fff7df;
+    }
+
+    .choice:hover {
+      transform: translateY(-1px);
+    }
+
+    .choice.selected {
+      outline: 5px solid #79abd3;
+      background: #eef7ff;
+    }
+
+    .choice.correct {
+      outline: 5px solid #69b35f;
+      background: #ecf8e8;
+    }
+
+    .choice.wrong {
+      outline: 5px solid #d85d57;
+      background: #fff0ee;
+    }
+
+    .choice:disabled {
+      cursor: default;
+      transform: none;
+    }
+
+    .choice img {
+      width: clamp(48px, 5vw, 68px);
+      height: clamp(48px, 5vw, 68px);
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .feedback {
+      display: none;
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      bottom: 78px;
+      width: min(560px, calc(100% - 48px));
+      max-height: min(210px, calc(100% - 150px));
+      padding: 18px 20px;
+      font-size: clamp(16px, 1.55vw, 20px);
+      line-height: 1.45;
+      font-weight: 850;
+      transform: translateX(-50%);
+      overflow: auto;
+    }
+
+    .feedback.show {
+      display: block;
+      animation: popFeedback 0.16s ease-out;
+    }
+
+    .feedback.warning {
+      border-color: #b23c3c;
+      background: #fff0ee;
+      color: #6f1f1f;
+    }
+
+    .feedback.success {
+      border-color: #4f8d4b;
+      background: #ecf8e8;
+      color: #27552c;
+    }
+
+    .feedback strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: clamp(19px, 1.95vw, 25px);
+    }
+
+    .feedback::after {
+      content: "아래 버튼을 눌러 계속하세요.";
+      display: block;
+      margin-top: 10px;
+      color: rgba(33, 25, 19, 0.68);
+      font-size: clamp(12px, 1.1vw, 15px);
+      font-weight: 900;
+    }
+
+    .feedback-icon {
+      display: inline-grid;
+      place-items: center;
+      margin-bottom: 8px;
+      padding: 6px 12px;
+      border: 2px solid currentColor;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+      font-size: clamp(18px, 1.8vw, 24px);
+      font-weight: 1000;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .pixel-button {
+      min-width: 132px;
+      min-height: 52px;
+      padding: 8px 18px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      color: white;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      font-size: clamp(18px, 2vw, 22px);
+      font-weight: 1000;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.18);
+    }
+
+    .pixel-button.primary { background: linear-gradient(#7aa8c4, var(--blue)); }
+    .pixel-button.danger { background: linear-gradient(#ee756f, var(--red)); }
+    .pixel-button:disabled { opacity: 0.52; cursor: default; }
+
+    .result-screen {
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: #eef2f3;
+    }
+
+    .result-screen.active { display: grid; }
+
+    .result-card {
+      width: min(820px, 100%);
+      padding: 28px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .score {
+      margin: 12px 0;
+      color: #356b3e;
+      font-size: clamp(50px, 10vw, 86px);
+      line-height: 1;
+      font-weight: 1000;
+    }
+
+    .summary {
+      display: grid;
+      gap: 8px;
+      margin: 18px 0 22px;
+      padding: 0;
+      list-style: none;
+      text-align: left;
+    }
+
+    .summary li {
+      padding: 12px;
+      border: 2px solid #d1b68d;
+      border-radius: 8px;
+      background: #fffaf0;
+      font-weight: 800;
+    }
+
+    .summary li.success {
+      border-color: #5fa35b;
+      background: #ecf8e8;
+      color: #25552c;
+    }
+
+    .summary li.fail {
+      border-color: #d17b48;
+      background: #fff1e6;
+      color: #71391f;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(6px); }
+    }
+
+    @keyframes popFeedback {
+      from {
+        opacity: 0;
+        transform: translate(-50%, 8px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .game-screen {
+        padding: 8px;
+      }
+
+      .app-shell {
+        width: min(calc(100vw - 16px), calc((100vh - 16px) * 16 / 9));
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="screen start-screen active" id="startScreen">
+      <div class="start-art" aria-label="SPECIAL CAFE 시작 화면">
+        <img src="assets/start-screen-v2.png" alt="SPECIAL CAFE 시작 화면" />
+        <button class="start-hotspot beginner" type="button" data-mode="beginner" aria-label="초보 바리스타"></button>
+        <button class="start-hotspot expert" type="button" data-mode="expert" aria-label="전문 바리스타"></button>
+        <button class="field-button" type="button" data-mode="field" aria-label="실전 카페실습">실전 카페실습</button>
+      </div>
+    </section>
+
+    <section class="screen game-screen" id="gameScreen">
+      <div class="app-shell">
+        <header class="app-title">
+          <div>SPECIAL CAFE 근무 중</div>
+          <div class="mode-pill" id="modePill">초보 바리스타</div>
+        </header>
+
+        <div class="steps" id="stageBar"></div>
+
+        <div class="game-layout">
+          <section class="scene-column">
+            <div class="scene-card">
+              <img id="sceneImage" src="assets/cafe-interior-pixel.png" alt="카페 안에서 바리스타와 손님이 마주 보고 있습니다." />
+              <div class="face-bubble customer" id="customerBubble">😊</div>
+              <div class="face-bubble barista" id="baristaBubble">😥</div>
+            </div>
+            <div class="scene-note" id="sceneNote">손님의 말을 잘 듣고 알맞은 응대 문장을 선택하세요.</div>
+            <aside class="side-card ticket">
+              <h2>주문표</h2>
+              <div class="ticket-row"><span>메뉴</span><strong id="ticketMenu">?</strong></div>
+              <div class="ticket-row"><span>온도</span><strong id="ticketTemp">?</strong></div>
+              <div class="ticket-row"><span>수량</span><strong id="ticketQty">?</strong></div>
+              <div class="ticket-row"><span>이용방법</span><strong id="ticketPlace">?</strong></div>
+            </aside>
+          </section>
+
+          <section class="interaction-column">
+            <div class="side-card stage-title" id="sceneTitle">손님이 들어왔습니다</div>
+            <div class="dialog-card">
+              <div class="speaker">손님</div>
+              <div class="speech" id="speech">안녕하세요. 주문하려고요.</div>
+            </div>
+            <div class="choices" id="choices"></div>
+            <div class="feedback" id="feedback" aria-live="polite"></div>
+            <div class="actions">
+              <button class="pixel-button primary" type="button" id="confirmButton" disabled>확인</button>
+              <button class="pixel-button danger" type="button" id="homeButton">처음으로</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen result-screen" id="resultScreen">
+      <div class="result-card">
+        <h1 id="resultTitle">응대 결과</h1>
+        <div class="score" id="scoreText">판매 성공</div>
+        <p id="resultMessage"></p>
+        <ul class="summary" id="summaryList"></ul>
+        <div class="actions">
+          <button class="pixel-button primary" type="button" id="retryButton">다시 하기</button>
+          <button class="pixel-button danger" type="button" id="modeButton">모드 선택</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="text/plain" id="legacy-game-script">
+    const stageNames = ["인사하기", "주문받기", "추가정보확인", "매장/포장확인", "손님 응답", "주문 확인", "음료 전달", "마무리 인사"];
+    const sceneImages = ["assets/cafe-interior-pixel.png", "assets/cafe-interior-light.png"];
+
+    const scenarios = [
+      {
+        order: { menu: "아메리카노", temp: "아이스", qty: "1잔", place: "매장" },
+        stages: [
+          ["손님이 들어왔습니다", "안녕하세요. 주문하려고요.", 0, ["어서 오세요. 주문 도와드리겠습니다.", "메뉴판 보고 빨리 골라 주세요.", "네, 기다리세요."], "손님이 들어오면 밝고 공손하게 인사해요."],
+          ["주문을 받습니다", "아메리카노 하나 주세요.", 2, ["네, 아이스 아메리카노로 준비하겠습니다.", "네, 큰 사이즈로 준비할게요.", "따뜻한 음료와 차가운 음료 중 어떤 것으로 하시겠습니까?"], "온도를 말하지 않았을 때는 따뜻한지 차가운지 확인해요."],
+          ["추가 정보를 확인합니다", "아이스로 주세요.", 1, ["포장 맞으시죠?", "사이즈는 기본으로 괜찮으실까요?", "라떼로 바꿔드릴까요?"], "필요한 정보가 남아 있으면 짧고 분명하게 질문해요."],
+          ["이용 방법을 확인합니다", "네, 기본 사이즈 괜찮아요.", 0, ["매장에서 드시나요, 포장하시나요?", "그럼 포장하겠습니다.", "음료는 나중에 가져가세요."], "매장 이용인지 포장인지 확인해요."],
+          ["손님의 응답을 듣습니다", "매장에서 마실게요.", 2, ["포장컵으로 드리겠습니다.", "따뜻한 아메리카노 맞으시죠?", "네, 매장 이용으로 준비하겠습니다."], "손님의 응답을 듣고 알맞게 반응해요."],
+          ["주문을 확인합니다", "네.", 1, ["아이스 라떼 한 잔, 매장 이용 맞으시죠?", "아이스 아메리카노 한 잔, 매장 이용 맞으실까요?", "따뜻한 아메리카노 두 잔 맞으시죠?"], "메뉴, 온도, 수량, 이용 방법을 다시 확인해요."],
+          ["음료를 전달합니다", "제 음료 나왔나요?", 0, [
+            { label: "아이스 아메리카노", image: "assets/drink-iced-americano.png" },
+            { label: "따뜻한 아메리카노", image: "assets/drink-hot-americano.png" },
+            { label: "아이스 카페라떼", image: "assets/drink-iced-latte.png" }
+          ], "주문한 음료를 기억하고 맞는 음료를 전달해요.", true],
+          ["마무리 인사", "잘 마셨습니다.", 1, ["컵은 저기에 두세요.", "감사합니다. 안녕히 가세요.", "다음에는 빨리 오세요."], "나가는 손님에게도 감사 인사를 해요."]
+        ]
+      },
+      {
+        order: { menu: "카페라떼", temp: "따뜻한", qty: "1잔", place: "포장" },
+        stages: [
+          ["손님이 들어왔습니다", "안녕하세요. 음료 하나 주문할게요.", 2, ["주문은 저쪽에서 하세요.", "네, 말씀하세요.", "어서 오세요. 주문 도와드리겠습니다."], "처음에는 밝은 인사와 안내가 좋아요."],
+          ["주문을 받습니다", "카페라떼 주세요.", 0, ["따뜻한 음료와 차가운 음료 중 어떤 것으로 하시겠습니까?", "아이스 아메리카노 맞으시죠?", "네, 바로 만들겠습니다."], "카페라떼만 말하면 온도를 확인해요."],
+          ["추가 정보를 확인합니다", "따뜻한 걸로 주세요.", 2, ["얼음은 많이 넣을까요?", "라떼는 없습니다.", "수량은 한 잔 맞으실까요?"], "수량이 분명하지 않으면 다시 확인해요."],
+          ["이용 방법을 확인합니다", "네, 한 잔이요.", 0, ["매장에서 드시나요, 포장하시나요?", "매장컵으로 준비하겠습니다.", "주문 끝났습니다."], "포장 여부를 확인해요."],
+          ["손님의 응답을 듣습니다", "포장해 주세요.", 1, ["매장에서 드신다고 하셨죠?", "네, 포장으로 준비하겠습니다.", "포장은 안 됩니다."], "손님의 요청을 정확히 반영해요."],
+          ["주문을 확인합니다", "네.", 2, ["아이스 카페라떼 한 잔, 매장 이용 맞으시죠?", "따뜻한 아메리카노 한 잔, 포장 맞으시죠?", "따뜻한 카페라떼 한 잔, 포장 맞으실까요?"], "온도, 메뉴, 수량, 포장 여부를 확인해요."],
+          ["음료를 전달합니다", "제 음료 받을 수 있을까요?", 2, [
+            { label: "아이스 아메리카노", image: "assets/drink-iced-americano.png" },
+            { label: "따뜻한 아메리카노", image: "assets/drink-hot-americano.png" },
+            { label: "따뜻한 카페라떼 포장", image: "assets/drink-takeout.png" }
+          ], "포장 요청이 있으면 포장컵으로 전달해요.", true],
+          ["마무리 인사", "감사합니다.", 0, ["감사합니다. 안녕히 가세요.", "네, 끝났습니다.", "다음 손님 오세요."], "마지막도 공손하게 인사해요."]
+        ]
+      }
+    ];
+
+    const screens = {
+      start: document.querySelector("#startScreen"),
+      game: document.querySelector("#gameScreen"),
+      result: document.querySelector("#resultScreen")
+    };
+    const modePill = document.querySelector("#modePill");
+    const sceneImage = document.querySelector("#sceneImage");
+    const customerBubble = document.querySelector("#customerBubble");
+    const baristaBubble = document.querySelector("#baristaBubble");
+    const stageBar = document.querySelector("#stageBar");
+    const sceneTitle = document.querySelector("#sceneTitle");
+    const speech = document.querySelector("#speech");
+    const choices = document.querySelector("#choices");
+    const confirmButton = document.querySelector("#confirmButton");
+    const feedback = document.querySelector("#feedback");
+    const ticketMenu = document.querySelector("#ticketMenu");
+    const ticketTemp = document.querySelector("#ticketTemp");
+    const ticketQty = document.querySelector("#ticketQty");
+    const ticketPlace = document.querySelector("#ticketPlace");
+    const resultTitle = document.querySelector("#resultTitle");
+    const scoreText = document.querySelector("#scoreText");
+    const resultMessage = document.querySelector("#resultMessage");
+    const summaryList = document.querySelector("#summaryList");
+    const sceneNote = document.querySelector("#sceneNote");
+
+    let mode = "beginner";
+    let scenario = scenarios[0];
+    let stageIndex = 0;
+    let selectedChoice = null;
+    let submitted = false;
+    let hadMistake = false;
+    let history = [];
+    let audioContext;
+
+    function showScreen(name) {
+      Object.values(screens).forEach((screen) => screen.classList.remove("active"));
+      screens[name].classList.add("active");
+    }
+
+    function playTone(type) {
+      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioContext.currentTime;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const tones = { click: [330, 0.04], correct: [660, 0.1], wrong: [180, 0.14], finish: [523, 0.14] };
+      const [freq, duration] = tones[type] || tones.click;
+      osc.frequency.value = freq;
+      osc.type = type === "wrong" ? "triangle" : "square";
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.06, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain).connect(audioContext.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function labelOf(option) {
+      return typeof option === "string" ? option : option.label;
+    }
+
+    function modeLabel() {
+      if (mode === "beginner") return "초보 바리스타";
+      if (mode === "expert") return "전문 바리스타";
+      return "실전 카페실습";
+    }
+
+    function startGame(nextMode) {
+      mode = nextMode;
+      scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+      stageIndex = 0;
+      selectedChoice = null;
+      submitted = false;
+      hadMistake = false;
+      history = [];
+      sceneImage.src = sceneImages[Math.floor(Math.random() * sceneImages.length)];
+      playTone("click");
+      showScreen("game");
+      renderStage();
+    }
+
+    function renderStageBar() {
+      stageBar.innerHTML = "";
+      stageNames.forEach((name, index) => {
+        const step = document.createElement("div");
+        step.className = "step";
+        if (index < stageIndex) step.classList.add("done");
+        if (index === stageIndex) step.classList.add("current");
+        step.innerHTML = `<div class="step-number">${index + 1}</div><div>${name}</div>`;
+        stageBar.append(step);
+      });
+    }
+
+    function renderTicket() {
+      const order = scenario.order;
+      const reveal = stageIndex >= 5;
+      ticketMenu.textContent = reveal ? order.menu : "?";
+      ticketTemp.textContent = reveal ? order.temp : "?";
+      ticketQty.textContent = reveal ? order.qty : "?";
+      ticketPlace.textContent = reveal ? order.place : "?";
+    }
+
+    function setReaction(state) {
+      customerBubble.className = "face-bubble customer";
+      baristaBubble.className = "face-bubble barista";
+      if (state === "correct") {
+        customerBubble.textContent = "😊";
+        customerBubble.classList.add("show", "good");
+        sceneNote.textContent = "손님이 만족해합니다. 다음 단계로 진행하세요.";
+      } else if (state === "wrong") {
+        customerBubble.textContent = "😠";
+        baristaBubble.textContent = "😥";
+        customerBubble.classList.add("show", "bad");
+        baristaBubble.classList.add("show", "awkward");
+        sceneNote.textContent = "손님이 불편해합니다. 피드백을 확인하세요.";
+      } else {
+        sceneNote.textContent = "손님의 말을 잘 듣고 알맞은 응대 문장을 선택하세요.";
+      }
+    }
+
+    function setReaction(state) {
+      customerBubble.className = "face-bubble customer";
+      baristaBubble.className = "face-bubble barista";
+      if (state === "correct") {
+        customerBubble.textContent = "😊";
+        customerBubble.classList.add("show", "good");
+        sceneNote.textContent = "손님이 만족해합니다. 다음 단계로 진행하세요.";
+        return;
+      }
+      if (state === "wrong") {
+        customerBubble.textContent = "😠";
+        baristaBubble.textContent = "😥";
+        customerBubble.classList.add("show", "bad");
+        baristaBubble.classList.add("show", "awkward");
+        sceneNote.textContent = "손님이 불편해합니다. 피드백을 확인하세요.";
+        return;
+      }
+      sceneNote.textContent = "손님의 말을 잘 듣고 알맞은 응대 문장을 선택하세요.";
+    }
+
+    function renderStage() {
+      const stage = scenario.stages[stageIndex];
+      selectedChoice = null;
+      submitted = false;
+      modePill.textContent = modeLabel();
+      renderStageBar();
+      renderTicket();
+      setReaction("neutral");
+      sceneTitle.textContent = stage[0];
+      speech.textContent = stage[1];
+      feedback.className = "feedback";
+      feedback.innerHTML = "";
+      confirmButton.disabled = true;
+      confirmButton.hidden = false;
+      confirmButton.textContent = "확인";
+      confirmButton.onclick = submitChoice;
+      renderChoices(stage);
+    }
+
+    function renderChoices(stage) {
+      const isDrinkStage = stage[5] === true;
+      choices.innerHTML = "";
+      stage[3].forEach((option, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "choice";
+        if (isDrinkStage) {
+          const img = document.createElement("img");
+          img.src = option.image;
+          img.alt = option.label;
+          const span = document.createElement("span");
+          span.textContent = option.label;
+          button.append(img, span);
+        } else {
+          button.textContent = option;
+        }
+        button.addEventListener("click", () => selectChoice(index));
+        choices.append(button);
+      });
+    }
+
+    function selectChoice(index) {
+      if (submitted) return;
+      selectedChoice = index;
+      confirmButton.disabled = false;
+      playTone("click");
+      [...choices.querySelectorAll(".choice")].forEach((button, buttonIndex) => {
+        button.classList.toggle("selected", buttonIndex === index);
+      });
+    }
+
+    function submitChoice() {
+      if (selectedChoice === null || submitted) return;
+      const stage = scenario.stages[stageIndex];
+      const isCorrect = selectedChoice === stage[2];
+      const selectedLabel = labelOf(stage[3][selectedChoice]);
+      const answerLabel = labelOf(stage[3][stage[2]]);
+      submitted = true;
+      history.push({ stage: stageNames[stageIndex], selected: selectedLabel, success: isCorrect });
+
+      [...choices.querySelectorAll(".choice")].forEach((button, index) => {
+        button.disabled = true;
+        button.classList.remove("selected");
+        if (index === stage[2]) button.classList.add("correct");
+        if (index === selectedChoice && !isCorrect) button.classList.add("wrong");
+      });
+
+      if (isCorrect) {
+        setReaction("correct");
+        playTone("correct");
+        feedback.className = "feedback show";
+        feedback.innerHTML = `<strong>좋아요. 알맞은 응대입니다.</strong><span>${stage[4]}</span>`;
+        confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+        confirmButton.disabled = false;
+        confirmButton.onclick = nextStage;
+        return;
+      }
+
+      hadMistake = true;
+      setReaction("wrong");
+      playTone("wrong");
+
+      if (mode !== "beginner") {
+        feedback.className = "feedback show warning";
+        feedback.innerHTML = `<strong>손님이 화가 나서 카페를 나가버렸습니다.</strong><span>전문 모드와 실전 카페실습에서는 틀린 응대를 하면 게임이 즉시 종료됩니다.</span>`;
+        confirmButton.hidden = true;
+        return;
+      }
+
+      feedback.className = "feedback show warning";
+      feedback.innerHTML = `<strong>손님이 불편해합니다. 정답은 “${answerLabel}”입니다.</strong><span>${stage[4]}</span>`;
+      confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+      confirmButton.disabled = false;
+      confirmButton.onclick = nextStage;
+    }
+
+    function submitChoice() {
+      if (selectedChoice === null || submitted) return;
+      const stage = scenario.stages[stageIndex];
+      const isCorrect = selectedChoice === stage[2];
+      const selectedLabel = labelOf(stage[3][selectedChoice]);
+      const answerLabel = labelOf(stage[3][stage[2]]);
+      submitted = true;
+      history.push({ stage: stageNames[stageIndex], selected: selectedLabel, success: isCorrect });
+
+      [...choices.querySelectorAll(".choice")].forEach((button, index) => {
+        button.disabled = true;
+        button.classList.remove("selected");
+        if (index === stage[2]) button.classList.add("correct");
+        if (index === selectedChoice && !isCorrect) button.classList.add("wrong");
+      });
+
+      if (isCorrect) {
+        setReaction("correct");
+        playTone("correct");
+        feedback.className = "feedback show success";
+        feedback.innerHTML = `<strong>좋아요. 알맞은 응대입니다.</strong><span>${stage[4]}</span>`;
+        confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+        confirmButton.disabled = false;
+        confirmButton.onclick = nextStage;
+        return;
+      }
+
+      hadMistake = true;
+      setReaction("wrong");
+      playTone("wrong");
+
+      if (mode !== "beginner") {
+        feedback.className = "feedback show warning";
+        feedback.innerHTML = `<strong>손님이 화가 나서 카페를 나가버렸습니다.</strong><span>전문 모드와 실전 카페실습에서는 틀린 응대를 하면 게임이 즉시 종료됩니다.</span>`;
+        confirmButton.hidden = true;
+        return;
+      }
+
+      feedback.className = "feedback show warning";
+      feedback.innerHTML = `<strong>손님이 불편해합니다. 정답은 “${answerLabel}”입니다.</strong><span>${stage[4]}</span>`;
+      confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+      confirmButton.disabled = false;
+      confirmButton.onclick = nextStage;
+    }
+
+    function nextStage() {
+      playTone("click");
+      if (stageIndex < stageNames.length - 1) {
+        stageIndex += 1;
+        renderStage();
+        return;
+      }
+      renderResult();
+      showScreen("result");
+    }
+
+    function renderResult() {
+      const success = !hadMistake;
+      playTone("finish");
+      resultTitle.textContent = mode === "beginner" ? "연습 완료" : "응대 결과";
+      scoreText.textContent = success ? "판매 성공" : "판매 실패";
+      resultMessage.textContent = success
+        ? "손님 응대를 끝까지 잘 마쳤습니다."
+        : "중간에 실수가 있어 다시 연습이 필요합니다.";
+      summaryList.innerHTML = "";
+      history.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.stage}: ${item.success ? "성공" : "연습 필요"} · 선택: ${item.selected}`;
+        summaryList.append(li);
+      });
+    }
+
+    function renderResult() {
+      const success = !hadMistake;
+      playTone("finish");
+      resultTitle.textContent = mode === "beginner" ? "연습 완료" : "응대 결과";
+      scoreText.textContent = success ? "판매 성공" : "판매 실패";
+      resultMessage.textContent = success
+        ? "손님 응대를 끝까지 잘 마쳤습니다."
+        : "중간에 실수가 있어 다시 연습이 필요합니다.";
+      summaryList.innerHTML = "";
+      history.forEach((item) => {
+        const li = document.createElement("li");
+        li.className = item.success ? "success" : "fail";
+        li.textContent = `${item.stage}: ${item.success ? "성공" : "연습 필요"} · 선택: ${item.selected}`;
+        summaryList.append(li);
+      });
+    }
+
+    function goHome() {
+      playTone("click");
+      showScreen("start");
+    }
+
+    function submitChoice() {
+      if (selectedChoice === null || submitted) return;
+      const stage = scenario.stages[stageIndex];
+      const isCorrect = selectedChoice === stage[2];
+      const selectedLabel = labelOf(stage[3][selectedChoice]);
+      const answerLabel = labelOf(stage[3][stage[2]]);
+      submitted = true;
+      history.push({ stage: stageNames[stageIndex], selected: selectedLabel, success: isCorrect });
+
+      [...choices.querySelectorAll(".choice")].forEach((button, index) => {
+        button.disabled = true;
+        button.classList.remove("selected");
+        if (index === stage[2]) button.classList.add("correct");
+        if (index === selectedChoice && !isCorrect) button.classList.add("wrong");
+      });
+
+      if (isCorrect) {
+        setReaction("correct");
+        playTone("correct");
+        feedback.className = "feedback show success";
+        feedback.innerHTML = `<strong>좋아요. 알맞은 응대입니다.</strong><span>${stage[4]}</span>`;
+        confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+        confirmButton.disabled = false;
+        confirmButton.onclick = nextStage;
+        return;
+      }
+
+      hadMistake = true;
+      setReaction("wrong");
+      playTone("wrong");
+
+      if (mode !== "beginner") {
+        feedback.className = "feedback show warning";
+        feedback.innerHTML = `<strong>손님이 화가 나서 카페를 나가버렸습니다.</strong><span>전문 모드와 실전 카페실습에서는 틀린 응대를 하면 게임이 즉시 종료됩니다.</span>`;
+        confirmButton.hidden = true;
+        return;
+      }
+
+      feedback.className = "feedback show warning";
+      feedback.innerHTML = `<strong>손님이 불편해합니다. 정답은 “${answerLabel}”입니다.</strong><span>${stage[4]}</span>`;
+      confirmButton.textContent = stageIndex === stageNames.length - 1 ? "결과 보기" : "다음";
+      confirmButton.disabled = false;
+      confirmButton.onclick = nextStage;
+    }
+
+    function renderResult() {
+      const success = !hadMistake;
+      playTone("finish");
+      resultTitle.textContent = mode === "beginner" ? "연습 완료" : "응대 결과";
+      scoreText.textContent = success ? "판매 성공" : "판매 실패";
+      resultMessage.textContent = success
+        ? "손님 응대를 끝까지 잘 마쳤습니다."
+        : "중간에 실수가 있어 다시 연습이 필요합니다.";
+      summaryList.innerHTML = "";
+      history.forEach((item) => {
+        const li = document.createElement("li");
+        li.className = item.success ? "success" : "fail";
+        li.textContent = `${item.stage}: ${item.success ? "성공" : "연습 필요"} · 선택: ${item.selected}`;
+        summaryList.append(li);
+      });
+    }
+
+    document.querySelectorAll("[data-mode]").forEach((button) => {
+      button.addEventListener("click", () => startGame(button.dataset.mode));
+    });
+    confirmButton.addEventListener("click", submitChoice);
+    document.querySelector("#homeButton").addEventListener("click", goHome);
+    document.querySelector("#modeButton").addEventListener("click", goHome);
+    document.querySelector("#retryButton").addEventListener("click", () => startGame(mode));
+  </script>
+  <script src="game.js"></script>
+</body>
+</html>
